@@ -5,4 +5,21 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+
+default = ['fast-compile'] 
+
+fast-compile = ['bevy/dynamic']
+
 [dependencies]
+
+[dependencies.rand]
+version = '0.8.5'
+features = ['small_rng']
+
+[dependencies.clap]
+version = '3'
+features = ['derive']
+
+[dependencies.bevy]
+version = '0.7'
