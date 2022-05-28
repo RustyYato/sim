@@ -1,10 +1,12 @@
 use bevy::prelude::*;
 use rand::{prelude::SmallRng, Rng, SeedableRng};
 
+use bevy_rapier2d::geometry::{Collider, Sensor};
+
 use crate::{args::Args, tools, Health};
 
 #[derive(Component, Clone, Copy)]
-struct FoodType;
+pub struct FoodType;
 
 #[derive(Bundle)]
 pub struct Food {
@@ -12,6 +14,8 @@ pub struct Food {
     #[bundle]
     sprite: SpriteBundle,
     health: Health,
+    collider: Collider,
+    sensor: Sensor,
 }
 
 pub fn startup(
@@ -52,6 +56,8 @@ pub fn startup(
                 texture: texture.clone(),
                 ..Default::default()
             },
+            collider: bevy_rapier2d::geometry::Collider::ball(2.5),
+            sensor: Sensor(true),
         });
     }
 }

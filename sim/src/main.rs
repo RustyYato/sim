@@ -1,6 +1,5 @@
-use std::sync::Arc;
-
 use bevy::{app::AppExit, prelude::*};
+use bevy_rapier2d::prelude::*;
 
 mod args;
 
@@ -18,13 +17,18 @@ fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .insert_resource(args)
+        .insert_resource(Msaa::default())
         .add_plugins(DefaultPlugins)
+        .add_plugin(bevy_rapier2d::plugin::RapierPhysicsPlugin::<
+            bevy_rapier2d::plugin::NoUserData,
+        >::with_physics_scale(1.0))
         .add_startup_system(startup)
         .add_startup_system(critters::startup)
         .add_startup_system(food::startup)
         .add_system(exit_on_escape_key)
         .add_system(move_all)
         .add_system(no_food_means_dead)
+        .add_system_to_stage(CoreStage::PostUpdate, eat_food_particle)
         .run();
 }
 
@@ -38,9 +42,6 @@ fn exit_on_escape_key(input: Res<Input<KeyCode>>, mut app_exit_events: EventWrit
 fn startup(mut commands: Commands) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 }
-
-#[derive(Component, Clone, Copy)]
-struct Velocity(Vec2);
 
 #[derive(Component, Clone, Copy)]
 struct Health(f32);
@@ -57,13 +58,12 @@ fn move_all(
 
     let time = time.delta_seconds();
 
-    creatures.for_each_mut(|(mut transform, Velocity(vel), mut health)| {
+    creatures.for_each_mut(|(mut transform, vel, mut health)| {
         let transform: &mut Transform = &mut *transform;
         let health: Option<&mut Health> = health.as_deref_mut();
 
-        transform.compute_matrix();
-        transform.translation.x += vel.x * time;
-        transform.translation.y += vel.y * time;
+        let vel: &Velocity = vel;
+        let vel = vel.linvel;
 
         let angle = f32::atan2(vel.y, vel.x);
         transform.rotation = Quat::from_axis_angle(Vec3::new(0.0, 0.0, 1.0), angle);
@@ -88,6 +88,29 @@ fn move_all(
 fn no_food_means_dead(mut commands: Commands, creatures: Query<(Entity, &Health)>) {
     creatures
         .iter()
-        .filter(|(_, &Health(health))| health < 0.0)
+        .filter(|(_, &Health(health))| health <= 0.0)
         .for_each(|(entity, _)| commands.entity(entity).despawn());
+}
+
+fn eat_food_particle(
+    mut collision_events: EventReader<bevy_rapier2d::pipeline::CollisionEvent>,
+    mut food: Query<&mut Health, (With<food::FoodType>, Without<critters::CritterType>)>,
+    mut critters: Query<&mut Health, (With<critters::CritterType>, Without<food::FoodType>)>,
+) {
+    for collision_event in collision_events.iter() {
+        match collision_event {
+            &CollisionEvent::Started(a, b, flags) => {
+                if let Ok(mut critter) = critters.get_mut(a) {
+                    if let Ok(mut food) = food.get_mut(b) {
+                        critter.0 += core::mem::take(&mut food.0);
+                    }
+                } else if let Ok(mut critter) = critters.get_mut(b) {
+                    if let Ok(mut food) = food.get_mut(a) {
+                        critter.0 += core::mem::take(&mut food.0);
+                    }
+                }
+            }
+            CollisionEvent::Stopped(_, _, _) => (),
+        }
+    }
 }

@@ -11,7 +11,10 @@ default = ['fast-compile']
 
 fast-compile = ['bevy/dynamic']
 
-[dependencies]
+[dependencies.bevy_rapier2d]
+version = '0.13.2'
+features = ['dim2', 'simd-nightly', 'parallel', 'debug-render']
+default-features = false
 
 [dependencies.rand]
 version = '0.8.5'

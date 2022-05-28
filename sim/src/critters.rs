@@ -1,10 +1,15 @@
 use bevy::prelude::*;
+use bevy_rapier2d::prelude::ActiveEvents;
+use bevy_rapier2d::prelude::Sensor;
 use rand::{prelude::SmallRng, Rng, SeedableRng};
 
-use crate::{args::Args, tools, Health, Velocity};
+use bevy_rapier2d::dynamics::{RigidBody, Velocity};
+use bevy_rapier2d::geometry::{ActiveCollisionTypes, Collider};
+
+use crate::{args::Args, tools, Health};
 
 #[derive(Component, Clone, Copy)]
-struct CritterType;
+pub struct CritterType;
 
 #[derive(Bundle)]
 pub struct Critter {
@@ -13,6 +18,12 @@ pub struct Critter {
     sprite: SpriteBundle,
     velocity: Velocity,
     health: Health,
+
+    collider: Collider,
+    active_collision_types: ActiveCollisionTypes,
+    rigid_body: RigidBody,
+    sensor: Sensor,
+    events: ActiveEvents,
 }
 
 pub fn startup(
@@ -40,9 +51,9 @@ pub fn startup(
                     rng.gen_range(args.health.init_min..args.health.init_max)
                 },
             ),
-            velocity: Velocity({
+            velocity: Velocity::linear({
                 let angle = rng.gen_range(0.0..std::f32::consts::TAU);
-                Vec2::new(angle.cos(), angle.sin()) * rng.gen_range(10.0..40.0)
+                Vec2::new(angle.cos(), angle.sin()) * rng.gen_range(10.0..100.0)
             }),
             sprite: SpriteBundle {
                 transform: Transform::from_xyz(
@@ -58,6 +69,12 @@ pub fn startup(
                 texture: texture.clone(),
                 ..Default::default()
             },
+            collider: Collider::ball(10.0),
+            rigid_body: RigidBody::KinematicVelocityBased,
+            active_collision_types: ActiveCollisionTypes::default()
+                | ActiveCollisionTypes::KINEMATIC_STATIC,
+            sensor: Sensor(true),
+            events: ActiveEvents::COLLISION_EVENTS,
         });
     }
 }
