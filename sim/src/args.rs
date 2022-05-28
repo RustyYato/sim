@@ -14,6 +14,9 @@ pub struct Args {
 
     #[clap(flatten)]
     pub health: Health,
+
+    #[clap(flatten)]
+    pub food: Food,
 }
 
 #[derive(Parser)]
@@ -26,6 +29,21 @@ pub struct Health {
 
     #[clap(long = "health-per-vel", default_value = "10.0")]
     pub per_vel: f32,
+}
+
+#[derive(Parser)]
+#[clap(rename_all = "kebab-case")]
+pub struct Food {
+    #[clap(name = "init-food-value-min", long, default_value = "1000")]
+    pub init_min: f32,
+    #[clap(name = "init-food-value-max", long, default_value = "1000")]
+    pub init_max: f32,
+
+    #[clap(long = "init-food-count", default_value = "100")]
+    pub count: u32,
+
+    #[clap(long = "food-per-sec", default_value = "10")]
+    pub per_sec: u32,
 }
 
 impl Args {

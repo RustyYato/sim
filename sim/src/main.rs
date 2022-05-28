@@ -7,6 +7,7 @@ mod args;
 mod tools;
 
 mod critters;
+mod food;
 
 fn main() {
     let mut args = args::Args::parse();
@@ -16,13 +17,11 @@ fn main() {
 
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
+        .insert_resource(args)
         .add_plugins(DefaultPlugins)
-        .add_startup_system({
-            let mut args = Some(args);
-            move |commands: Commands, window: Res<Windows>, assets: ResMut<Assets<Image>>| {
-                critters::startup(args.take().unwrap(), commands, window, assets)
-            }
-        })
+        .add_startup_system(startup)
+        .add_startup_system(critters::startup)
+        .add_startup_system(food::startup)
         .add_system(exit_on_escape_key)
         .add_system(move_all)
         .add_system(no_food_means_dead)
@@ -34,6 +33,10 @@ fn exit_on_escape_key(input: Res<Input<KeyCode>>, mut app_exit_events: EventWrit
     if input.just_pressed(KeyCode::Escape) {
         app_exit_events.send(AppExit);
     }
+}
+
+fn startup(mut commands: Commands) {
+    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
 }
 
 #[derive(Component, Clone, Copy)]
