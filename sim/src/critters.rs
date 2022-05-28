@@ -28,7 +28,7 @@ pub fn startup(
     let width = window.width();
     let height = window.height();
 
-    let circle = assets.add(tools::circle());
+    let circle = assets.add(tools::oblique_circle());
 
     for _ in 0..args.critters {
         let mut rng = SmallRng::from_seed(rng.gen());

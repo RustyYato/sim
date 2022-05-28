@@ -56,6 +56,9 @@ fn move_all(
         transform.translation.x += vel.x * time;
         transform.translation.y += vel.y * time;
 
+        let angle = f32::atan2(vel.y, vel.x);
+        transform.rotation = Quat::from_axis_angle(Vec3::new(0.0, 0.0, 1.0), angle);
+
         if transform.translation.x > width / 2.0 {
             transform.translation.x -= width;
         } else if transform.translation.x < -width / 2.0 {
