@@ -6,6 +6,7 @@ use rand::{prelude::SmallRng, Rng, SeedableRng};
 use bevy_rapier2d::dynamics::{RigidBody, Velocity};
 use bevy_rapier2d::geometry::{ActiveCollisionTypes, Collider};
 
+use crate::EntityType;
 use crate::{args::Args, tools, Health};
 
 #[derive(Component, Clone, Copy)]
@@ -14,6 +15,7 @@ pub struct CritterType;
 #[derive(Bundle)]
 pub struct Critter {
     critter_type: CritterType,
+    entity_type: EntityType,
     #[bundle]
     sprite: SpriteBundle,
     velocity: Velocity,
@@ -44,6 +46,7 @@ pub fn startup(
         let mut rng = SmallRng::from_seed(rng.gen());
         commands.spawn().insert_bundle(Critter {
             critter_type: CritterType,
+            entity_type: EntityType::Critter,
             health: Health(
                 if (args.health.init_max - args.health.init_min).abs() < 0.01 {
                     args.health.init_max

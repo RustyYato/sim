@@ -3,7 +3,7 @@ use rand::{prelude::SmallRng, Rng, SeedableRng};
 
 use bevy_rapier2d::geometry::{Collider, Sensor};
 
-use crate::{args::Args, tools, Health};
+use crate::{args::Args, tools, EntityType, Health};
 
 #[derive(Component, Clone, Copy)]
 pub struct FoodType;
@@ -11,6 +11,7 @@ pub struct FoodType;
 #[derive(Bundle)]
 pub struct Food {
     food_type: FoodType,
+    entity_type: EntityType,
     #[bundle]
     sprite: SpriteBundle,
     health: Health,
@@ -37,6 +38,7 @@ pub fn startup(
 
         commands.spawn().insert_bundle(Food {
             food_type: FoodType,
+            entity_type: EntityType::Food,
             health: Health(if (args.food.init_max - args.food.init_min).abs() < 0.01 {
                 args.food.init_max
             } else {

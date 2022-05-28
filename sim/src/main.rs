@@ -8,6 +8,12 @@ mod tools;
 mod critters;
 mod food;
 
+#[derive(Component, Debug, Clone, Copy)]
+enum EntityType {
+    Critter,
+    Food,
+}
+
 fn main() {
     let mut args = args::Args::parse();
     args.seed = args.raw_seed.unwrap_or_else(rand::random);
@@ -94,22 +100,20 @@ fn no_food_means_dead(mut commands: Commands, creatures: Query<(Entity, &Health)
 
 fn eat_food_particle(
     mut collision_events: EventReader<bevy_rapier2d::pipeline::CollisionEvent>,
-    mut food: Query<&mut Health, (With<food::FoodType>, Without<critters::CritterType>)>,
-    mut critters: Query<&mut Health, (With<critters::CritterType>, Without<food::FoodType>)>,
+    mut entities: Query<(&mut Health, &EntityType)>,
 ) {
     for collision_event in collision_events.iter() {
         match collision_event {
-            &CollisionEvent::Started(a, b, flags) => {
-                if let Ok(mut critter) = critters.get_mut(a) {
-                    if let Ok(mut food) = food.get_mut(b) {
-                        critter.0 += core::mem::take(&mut food.0);
-                    }
-                } else if let Ok(mut critter) = critters.get_mut(b) {
-                    if let Ok(mut food) = food.get_mut(a) {
-                        critter.0 += core::mem::take(&mut food.0);
-                    }
+            &CollisionEvent::Started(a, b, flags) => match entities.get_many_mut([a, b]) {
+                Ok([(critter_health, EntityType::Critter), (food_health, EntityType::Food)])
+                | Ok([(food_health, EntityType::Food), (critter_health, EntityType::Critter)]) => {
+                    let mut critter_health = critter_health;
+                    let mut food_health = food_health;
+                    critter_health.0 += core::mem::take(&mut food_health.0);
                 }
-            }
+                Ok(_) => (),
+                Err(err) => (),
+            },
             CollisionEvent::Stopped(_, _, _) => (),
         }
     }
