@@ -11,7 +11,6 @@ mod critters;
 fn main() {
     let mut args = args::Args::parse();
     args.seed = args.raw_seed.unwrap_or_else(rand::random);
-    let args = Arc::new(args);
 
     eprintln!("Seed = {}", args.seed);
 
@@ -19,13 +18,14 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0.0, 0.0, 0.0)))
         .add_plugins(DefaultPlugins)
         .add_startup_system({
-            let args = args.clone();
+            let mut args = Some(args);
             move |commands: Commands, window: Res<Windows>, assets: ResMut<Assets<Image>>| {
-                critters::startup(&args, commands, window, assets)
+                critters::startup(args.take().unwrap(), commands, window, assets)
             }
         })
         .add_system(exit_on_escape_key)
         .add_system(move_all)
+        .add_system(no_food_means_dead)
         .run();
 }
 
@@ -39,10 +39,14 @@ fn exit_on_escape_key(input: Res<Input<KeyCode>>, mut app_exit_events: EventWrit
 #[derive(Component, Clone, Copy)]
 struct Velocity(Vec2);
 
+#[derive(Component, Clone, Copy)]
+struct Health(f32);
+
 fn move_all(
     time: Res<Time>,
-    mut creatures: Query<(&mut Transform, &Velocity)>,
     window: Res<Windows>,
+    args: Res<args::Args>,
+    mut creatures: Query<(&mut Transform, &Velocity, Option<&mut Health>)>,
 ) {
     let window = window.get_primary().unwrap();
     let width = window.width();
@@ -50,8 +54,10 @@ fn move_all(
 
     let time = time.delta_seconds();
 
-    creatures.for_each_mut(|(mut transform, Velocity(vel))| {
+    creatures.for_each_mut(|(mut transform, Velocity(vel), mut health)| {
         let transform: &mut Transform = &mut *transform;
+        let health: Option<&mut Health> = health.as_deref_mut();
+
         transform.compute_matrix();
         transform.translation.x += vel.x * time;
         transform.translation.y += vel.y * time;
@@ -69,5 +75,16 @@ fn move_all(
         } else if transform.translation.y < -height / 2.0 {
             transform.translation.y += height;
         }
+
+        if let Some(health) = health {
+            health.0 -= vel.length() * time * args.health.per_vel;
+        }
     })
+}
+
+fn no_food_means_dead(mut commands: Commands, creatures: Query<(Entity, &Health)>) {
+    creatures
+        .iter()
+        .filter(|(_, &Health(health))| health < 0.0)
+        .for_each(|(entity, _)| commands.entity(entity).despawn());
 }
